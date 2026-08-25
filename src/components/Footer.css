@@ -1,0 +1,135 @@
+.footer {
+  background: #f7f7f7;
+  border-top: 1px solid #ebebeb;
+  margin-top: auto;
+}
+
+.footer__links {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 48px 24px 24px;
+}
+
+.footer__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+}
+
+.footer__heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: #222;
+  margin: 0 0 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.footer__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footer__link {
+  font-size: 14px;
+  color: #484848;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.footer__link:hover {
+  color: #222;
+  text-decoration: underline;
+}
+
+.footer__copyright {
+  border-top: 1px solid #ebebeb;
+  padding: 16px 24px;
+  background: #f7f7f7;
+}
+
+.footer__copyright-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #717171;
+}
+
+.footer__copyright-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer__selectors {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.footer__selector-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #222;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.footer__selector-btn:hover {
+  background: #ebebeb;
+}
+
+.footer__social {
+  display: flex;
+  gap: 12px;
+}
+
+.footer__social-link {
+  color: #222;
+  display: flex;
+  align-items: center;
+}
+
+.footer__social-link svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: color 0.15s;
+}
+
+.footer__social-link:hover {
+  color: #ff385c;
+}
+
+@media (max-width: 768px) {
+  .footer__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .footer__copyright-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .footer__selectors {
+    margin-left: 0;
+  }
+}
