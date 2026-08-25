@@ -1,0 +1,11 @@
+/* App.css — kept minimal; global styles live in index.css */
+
+/* Page transition fade — applied to all route wrappers */
+.app-main > * {
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
