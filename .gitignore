@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables
+.env
+server/.env
+
+# Uploaded files
+server/uploads/*
+!server/uploads/.gitkeep
