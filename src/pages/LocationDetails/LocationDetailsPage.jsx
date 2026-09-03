@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getById } from '../../data/accommodations';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
 import Footer from '../../components/Footer';
 import './LocationDetailsPage.css';
+
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 function StarRating({ rating }) {
@@ -34,8 +34,11 @@ const nightsBetween = (a, b) => {
 export default function LocationDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
-  const acc = getById(id);
+  const { isAuthenticated } = useAuth();
+
+  const [acc, setAcc] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
 
   const [checkIn, setCheckIn] = useState(today());
   const [checkOut, setCheckOut] = useState(addDays(today(), 7));
@@ -45,22 +48,47 @@ export default function LocationDetailsPage() {
   const [reserveError, setReserveError] = useState('');
   const [galleryIndex, setGalleryIndex] = useState(null);
 
+  /* Fetch accommodation from API */
+  useEffect(() => {
+    const fetchAccommodation = async () => {
+      try {
+        setLoading(true);
+        setFetchError('');
+        const { data } = await api.get(`/accommodations/${id}`);
+        setAcc(data);
+      } catch (err) {
+        setFetchError('Accommodation not found or could not be loaded.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAccommodation();
+  }, [id]);
+
   const nights = useMemo(() => nightsBetween(checkIn, checkOut), [checkIn, checkOut]);
 
   const subtotal = acc ? acc.price * nights : 0;
   const weeklyDiscountAmt = acc
-    ? nights >= 7
-      ? Math.round(subtotal * (acc.weeklyDiscount / 100))
-      : 0
+    ? nights >= 7 ? Math.round(subtotal * ((acc.weeklyDiscount || 0) / 100)) : 0
     : 0;
   const total = acc
-    ? subtotal - weeklyDiscountAmt + acc.cleaningFee + acc.serviceFee + acc.occupancyTaxes
+    ? subtotal - weeklyDiscountAmt + (acc.cleaningFee || 0) + (acc.serviceFee || 0) + (acc.occupancyTaxes || 0)
     : 0;
 
-  if (!acc) {
+  /* Loading state */
+  if (loading) {
     return (
       <div className="details-not-found">
-        <h2>Accommodation not found.</h2>
+        <p>Loading accommodation…</p>
+      </div>
+    );
+  }
+
+  /* Error / not found state */
+  if (fetchError || !acc) {
+    return (
+      <div className="details-not-found">
+        <h2>{fetchError || 'Accommodation not found.'}</h2>
         <button className="btn btn--primary" onClick={() => navigate('/locations')}>
           Back to listings
         </button>
@@ -96,6 +124,9 @@ export default function LocationDetailsPage() {
     }
   };
 
+  const hostName =
+    typeof acc.host === 'object' ? acc.host?.username : acc.host;
+
   const ratingCategories = acc.specificRatings
     ? Object.entries(acc.specificRatings)
     : [];
@@ -110,9 +141,9 @@ export default function LocationDetailsPage() {
           <h1 className="details__title">{acc.title}</h1>
           <div className="details__sub">
             <span className="details__rating">
-              <StarRating rating={acc.rating} />
-              <strong>{acc.rating}</strong>
-              <span className="details__reviews">· {acc.reviews} reviews</span>
+              <StarRating rating={acc.rating || 0} />
+              <strong>{acc.rating || 0}</strong>
+              <span className="details__reviews">· {acc.reviews || 0} reviews</span>
             </span>
             <span className="details__location-text">
               <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 1C10.925 1 7 6.925 7 11.5c0 3.712 2.388 7.662 4.925 10.65C14.1 24.85 16 26.5 16 26.5s1.9-1.65 4.075-4.35C22.612 19.162 25 15.212 25 11.5 25 6.925 21.075 1 16 1zm0 14a3.5 3.5 0 110-7 3.5 3.5 0 010 7z" /></svg>
@@ -122,35 +153,56 @@ export default function LocationDetailsPage() {
         </section>
 
         {/* ── Image Gallery ────────────────────────────────────────────── */}
-        <section className="details__gallery" aria-label="Photo gallery">
-          <div className="details__gallery-main">
-            <img
-              src={acc.images[0]}
-              alt={`${acc.title} main photo`}
-              onClick={() => setGalleryIndex(0)}
-              className="details__gallery-img details__gallery-img--large"
-            />
-          </div>
-          <div className="details__gallery-grid">
-            {acc.images.slice(1, 5).map((img, i) => (
+        {acc.images?.length > 0 ? (
+          <section className="details__gallery" aria-label="Photo gallery">
+            <div className="details__gallery-main">
               <img
-                key={i}
-                src={img}
-                alt={`${acc.title} photo ${i + 2}`}
-                className="details__gallery-img"
-                onClick={() => setGalleryIndex(i + 1)}
-                loading="lazy"
+                src={acc.images[0].startsWith('/uploads')
+                  ? `http://localhost:5000${acc.images[0]}`
+                  : acc.images[0]}
+                alt={`${acc.title} main photo`}
+                onClick={() => setGalleryIndex(0)}
+                className="details__gallery-img details__gallery-img--large"
               />
-            ))}
-          </div>
-        </section>
+            </div>
+            {acc.images.length > 1 && (
+              <div className="details__gallery-grid">
+                {acc.images.slice(1, 5).map((img, i) => (
+                  <img
+                    key={i}
+                    src={img.startsWith('/uploads') ? `http://localhost:5000${img}` : img}
+                    alt={`${acc.title} photo ${i + 2}`}
+                    className="details__gallery-img"
+                    onClick={() => setGalleryIndex(i + 1)}
+                    loading="lazy"
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        ) : (
+          <section className="details__gallery" aria-label="Photo gallery">
+            <div className="details__gallery-main">
+              <div className="details__gallery-img details__gallery-img--large"
+                style={{ background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ color: '#9ca3af' }}>No photos available</span>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Lightbox */}
-        {galleryIndex !== null && (
+        {galleryIndex !== null && acc.images?.length > 0 && (
           <div className="details__lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer"
             onClick={() => setGalleryIndex(null)}>
             <button className="details__lightbox-close" aria-label="Close" onClick={() => setGalleryIndex(null)}>✕</button>
-            <img src={acc.images[galleryIndex]} alt="" onClick={(e) => e.stopPropagation()} />
+            <img
+              src={acc.images[galleryIndex]?.startsWith('/uploads')
+                ? `http://localhost:5000${acc.images[galleryIndex]}`
+                : acc.images[galleryIndex]}
+              alt=""
+              onClick={(e) => e.stopPropagation()}
+            />
             <div className="details__lightbox-nav" onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setGalleryIndex((galleryIndex - 1 + acc.images.length) % acc.images.length)}>‹</button>
               <span>{galleryIndex + 1} / {acc.images.length}</span>
@@ -201,7 +253,7 @@ export default function LocationDetailsPage() {
             <section className="details__section">
               <h2 className="details__section-title">What this place offers</h2>
               <ul className="details__amenities-list">
-                {acc.amenities.map((a) => (
+                {acc.amenities?.map((a) => (
                   <li key={a} className="details__amenity">
                     <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M13.5 24.569l-7.78-7.78 1.414-1.413L13.5 21.74l11.366-11.366 1.414 1.414z"/></svg>
                     {a}
@@ -222,7 +274,7 @@ export default function LocationDetailsPage() {
               </ul>
             </section>
 
-            {/* 7 nights stay */}
+            {/* Nights */}
             <section className="details__section">
               <h2 className="details__section-title">
                 {nights > 0 ? `${nights} night${nights !== 1 ? 's' : ''} in ${acc.location}` : `Stays in ${acc.location}`}
@@ -235,7 +287,7 @@ export default function LocationDetailsPage() {
             {/* Reviews */}
             <section className="details__section">
               <h2 className="details__section-title">
-                <StarRating rating={acc.rating} /> {acc.rating} · {acc.reviews} reviews
+                <StarRating rating={acc.rating || 0} /> {acc.rating || 0} · {acc.reviews || 0} reviews
               </h2>
               {ratingCategories.length > 0 && (
                 <div className="details__rating-grid">
@@ -258,9 +310,11 @@ export default function LocationDetailsPage() {
             <section className="details__section">
               <h2 className="details__section-title">Meet your host</h2>
               <div className="details__host">
-                <div className="details__host-avatar">{acc.host?.charAt(0).toUpperCase()}</div>
+                <div className="details__host-avatar">
+                  {hostName?.charAt(0).toUpperCase() || '?'}
+                </div>
                 <div>
-                  <strong>{acc.host}</strong>
+                  <strong>{hostName || 'Host'}</strong>
                   <p className="text-muted">Host</p>
                 </div>
               </div>
@@ -305,7 +359,7 @@ export default function LocationDetailsPage() {
                   <strong>${acc.price}</strong> / night
                 </span>
                 <span className="details__calc-rating">
-                  ★ {acc.rating} · {acc.reviews} reviews
+                  ★ {acc.rating || 0} · {acc.reviews || 0} reviews
                 </span>
               </div>
 
@@ -375,15 +429,15 @@ export default function LocationDetailsPage() {
                   )}
                   <div className="details__calc-line">
                     <span>Cleaning fee</span>
-                    <span>${acc.cleaningFee}</span>
+                    <span>${acc.cleaningFee || 0}</span>
                   </div>
                   <div className="details__calc-line">
                     <span>Service fee</span>
-                    <span>${acc.serviceFee}</span>
+                    <span>${acc.serviceFee || 0}</span>
                   </div>
                   <div className="details__calc-line">
                     <span>Occupancy taxes & fees</span>
-                    <span>${acc.occupancyTaxes}</span>
+                    <span>${acc.occupancyTaxes || 0}</span>
                   </div>
                   <div className="details__calc-line details__calc-line--total">
                     <span>Total</span>

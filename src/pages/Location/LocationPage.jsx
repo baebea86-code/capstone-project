@@ -70,13 +70,11 @@ export default function LocationPage() {
       try {
         setLoading(true);
         setError('');
-
         const response = await api.get('/accommodations');
-
         setAccommodations(response.data);
       } catch (err) {
         console.error('Error fetching accommodations:', err);
-        setError('Unable to load accommodations.');
+        setError('Unable to load accommodations. Make sure the server is running.');
       } finally {
         setLoading(false);
       }
@@ -317,7 +315,11 @@ export default function LocationPage() {
                     aria-label={`View ${acc.title}`}
                   >
                     <img
-                      src={acc.images?.[0]}
+                      src={
+                        acc.images?.[0]?.startsWith('/uploads')
+                          ? `http://localhost:5000${acc.images[0]}`
+                          : acc.images?.[0]
+                      }
                       alt={acc.title}
                       className="location-card__img"
                       loading="lazy"
