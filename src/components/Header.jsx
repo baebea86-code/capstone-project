@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { locations } from '../data/accommodations';
+import api from '../api/axios';
 import './Header.css';
 
 /**
@@ -14,8 +14,21 @@ export default function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [suggestions, setSuggestions] = useState([]);
+  const [locations, setLocations] = useState([]);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+
+  // Fetch unique locations from API on mount
+  useEffect(() => {
+    api.get('/accommodations')
+      .then(({ data }) => {
+        // API returns { data: [...], pagination: {...} }
+        const list = data.data || data;
+        const unique = [...new Set(list.map((a) => a.location).filter(Boolean))].sort();
+        setLocations(unique);
+      })
+      .catch(() => {}); // fail silently — search still works without suggestions
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {

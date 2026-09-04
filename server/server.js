@@ -1,49 +1,8 @@
 require('dotenv').config();
 const dns = require('dns');
 dns.setServers(['8.8.8.8', '1.1.1.1']);
-const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
-const path = require('path');
-
-const userRoutes = require('./routes/userRoutes');
-const accommodationRoutes = require('./routes/accommodationRoutes');
-const reservationRoutes = require('./routes/reservationRoutes');
-
-const app = express();
-
-// ── Middleware ────────────────────────────────────────────────────────────────
-const allowedOrigins = [
-  process.env.CLIENT_URL || 'http://localhost:5173',
-  'http://localhost:5174',
-];
-app.use(cors({ origin: allowedOrigins }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Serve uploaded images as static files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// ── Routes ────────────────────────────────────────────────────────────────────
-app.use('/api/users', userRoutes);
-app.use('/api/accommodations', accommodationRoutes);
-app.use('/api/reservations', reservationRoutes);
-
-// Health check
-app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
-
-// ── 404 handler ───────────────────────────────────────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found' });
-});
-
-// ── Global error handler ──────────────────────────────────────────────────────
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    message: err.message || 'Internal server error',
-  });
-});
+const app = require('./app');
 
 // ── Database connection & server start ────────────────────────────────────────
 const PORT = process.env.PORT || 5000;

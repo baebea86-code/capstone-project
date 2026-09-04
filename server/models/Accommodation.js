@@ -97,4 +97,14 @@ const accommodationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// ── Indexes for faster queries ────────────────────────────────────────────────
+// location is queried frequently (filter by city)
+accommodationSchema.index({ location: 1 });
+// price is used for range filtering and sorting
+accommodationSchema.index({ price: 1 });
+// combined index for the most common query: filter by location + sort by price
+accommodationSchema.index({ location: 1, price: 1 });
+// createdAt for default sort (newest first)
+accommodationSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Accommodation', accommodationSchema);

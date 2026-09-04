@@ -71,7 +71,8 @@ export default function LocationPage() {
         setLoading(true);
         setError('');
         const response = await api.get('/accommodations');
-        setAccommodations(response.data);
+        // API returns { data: [...], pagination: {...} }
+        setAccommodations(response.data.data || response.data);
       } catch (err) {
         console.error('Error fetching accommodations:', err);
         setError('Unable to load accommodations. Make sure the server is running.');

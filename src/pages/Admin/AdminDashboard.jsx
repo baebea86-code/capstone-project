@@ -18,7 +18,8 @@ export default function AdminDashboard() {
     setError('');
     try {
       const { data } = await api.get('/accommodations');
-      setListings(data);
+      // API returns { data: [...], pagination: {...} }
+      setListings(data.data || data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load listings');
     } finally {

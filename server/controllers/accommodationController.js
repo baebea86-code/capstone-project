@@ -52,19 +52,45 @@ const createAccommodation = async (req, res) => {
 /**
  * GET /api/accommodations
  * Read all accommodation listings. Public.
+ * Query params:
+ *   location - filter by location (case-insensitive)
+ *   page     - page number (default: 1)
+ *   limit    - results per page (default: 12, max: 50)
  */
 const getAccommodations = async (req, res) => {
   try {
     const { location } = req.query;
+
+    // Pagination params — clamp limit to max 50
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 12));
+    const skip = (page - 1) * limit;
+
     const filter = location
       ? { location: { $regex: location, $options: 'i' } }
       : {};
 
-    const accommodations = await Accommodation.find(filter)
-      .populate('host', 'username email')
-      .sort({ createdAt: -1 });
+    // Run count and data fetch in parallel for efficiency
+    const [total, accommodations] = await Promise.all([
+      Accommodation.countDocuments(filter),
+      Accommodation.find(filter)
+        .populate('host', 'username email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+    ]);
 
-    res.json(accommodations);
+    res.json({
+      data: accommodations,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
