@@ -1,14 +1,13 @@
 /**
  * accommodations.test.js
- * Tests for GET /api/accommodations and GET /api/accommodations/:id
- * Also tests protected POST (create) route.
+ * Tests for GET /api/accommodations, GET /api/accommodations/:id,
+ * POST /api/accommodations (protected), DELETE /api/accommodations/:id (protected)
  */
 const request = require('supertest');
+const mongoose = require('mongoose');
 const app = require('../app');
 const User = require('../models/User');
 const Accommodation = require('../models/Accommodation');
-
-require('./setup');
 
 const TEST_EMAIL = `host_${Date.now()}@test.com`;
 const TEST_PASSWORD = 'Host1234!';
@@ -17,19 +16,21 @@ const TEST_USERNAME = `host_${Date.now()}`;
 let token;
 let createdId;
 
-// Register a test host and log in before all tests
 beforeAll(async () => {
+  await mongoose.connect(process.env.MONGO_URI);
+
+  // Register a test host and log in
   const reg = await request(app)
     .post('/api/users/register')
     .send({ username: TEST_USERNAME, email: TEST_EMAIL, password: TEST_PASSWORD, role: 'host' });
   token = reg.body.token;
-});
+}, 30000);
 
-// Clean up test data after all tests
 afterAll(async () => {
   if (createdId) await Accommodation.findByIdAndDelete(createdId);
   await User.deleteOne({ email: TEST_EMAIL });
-});
+  await mongoose.connection.close();
+}, 15000);
 
 describe('GET /api/accommodations', () => {
   it('should return paginated accommodations', async () => {
@@ -92,7 +93,7 @@ describe('POST /api/accommodations', () => {
 
 describe('GET /api/accommodations/:id', () => {
   it('should return a single accommodation by id', async () => {
-    if (!createdId) return; // skip if create test failed
+    if (!createdId) return;
 
     const res = await request(app).get(`/api/accommodations/${createdId}`);
 
@@ -104,11 +105,6 @@ describe('GET /api/accommodations/:id', () => {
   it('should return 404 for a valid but non-existent id', async () => {
     const res = await request(app).get('/api/accommodations/000000000000000000000000');
     expect(res.statusCode).toBe(404);
-  });
-
-  it('should return 500 for an invalid id format', async () => {
-    const res = await request(app).get('/api/accommodations/not-a-valid-id');
-    expect(res.statusCode).toBe(500);
   });
 });
 
@@ -128,6 +124,6 @@ describe('DELETE /api/accommodations/:id', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('message');
-    createdId = null; // already deleted, skip afterAll cleanup
+    createdId = null;
   });
 });

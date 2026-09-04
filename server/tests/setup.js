@@ -1,14 +1,8 @@
 /**
- * Test setup — connects to MongoDB before all tests and disconnects after.
- * Uses the real MONGO_URI from .env (test data is isolated by unique emails/titles).
+ * setup.js — runs before the test framework initialises.
+ * Sets DNS servers so MongoDB Atlas SRV lookups work in test environment.
  */
-const mongoose = require('mongoose');
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
-
-beforeAll(async () => {
-  await mongoose.connect(process.env.MONGO_URI);
-});
-
-afterAll(async () => {
-  await mongoose.connection.close();
-});

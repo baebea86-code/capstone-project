@@ -1,22 +1,24 @@
 /**
  * auth.test.js
- * Tests for POST /api/users/register and POST /api/users/login
+ * Tests for POST /api/users/register, POST /api/users/login, GET /api/users/me
  */
 const request = require('supertest');
+const mongoose = require('mongoose');
 const app = require('../app');
 const User = require('../models/User');
 
-require('./setup');
-
-// Use a unique email per test run so tests don't conflict on re-runs
 const TEST_EMAIL = `testuser_${Date.now()}@test.com`;
 const TEST_PASSWORD = 'Test1234!';
 const TEST_USERNAME = `testuser_${Date.now()}`;
 
-// Clean up the test user after all tests
+beforeAll(async () => {
+  await mongoose.connect(process.env.MONGO_URI);
+}, 30000);
+
 afterAll(async () => {
   await User.deleteOne({ email: TEST_EMAIL });
-});
+  await mongoose.connection.close();
+}, 15000);
 
 describe('POST /api/users/register', () => {
   it('should register a new user and return a token', async () => {
@@ -27,7 +29,7 @@ describe('POST /api/users/register', () => {
     expect(res.statusCode).toBe(201);
     expect(res.body).toHaveProperty('token');
     expect(res.body).toHaveProperty('email', TEST_EMAIL);
-    expect(res.body).not.toHaveProperty('password'); // password must never be returned
+    expect(res.body).not.toHaveProperty('password');
   });
 
   it('should return 400 when registering with a duplicate email', async () => {
@@ -42,7 +44,7 @@ describe('POST /api/users/register', () => {
   it('should return 400 when required fields are missing', async () => {
     const res = await request(app)
       .post('/api/users/register')
-      .send({ email: 'nousername@test.com' }); // missing username and password
+      .send({ email: 'nousername@test.com' });
 
     expect(res.statusCode).toBe(400);
   });
