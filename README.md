@@ -108,7 +108,6 @@ VITE_API_URL=http://localhost:5000/api
 |----------------|--------------------------------------------------|
 | `VITE_API_URL` | Base URL for all API requests                    |
 
-> All `VITE_` prefixed variables are exposed to the browser. Never store secrets here.
 
 ### Running Locally
 
