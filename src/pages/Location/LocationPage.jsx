@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../../api/axios';
 import Footer from '../../components/Footer';
+import { getImageUrl } from '../../utils/imageUrl';
 import './LocationPage.css';
 
 /* Star rating helper */
@@ -316,11 +317,7 @@ export default function LocationPage() {
                     aria-label={`View ${acc.title}`}
                   >
                     <img
-                      src={
-                        acc.images?.[0]?.startsWith('/uploads')
-                          ? `http://localhost:5000${acc.images[0]}`
-                          : acc.images?.[0]
-                      }
+                      src={getImageUrl(acc.images?.[0])}
                       alt={acc.title}
                       className="location-card__img"
                       loading="lazy"

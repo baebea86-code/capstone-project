@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../api/axios';
+import { getImageUrl } from '../../utils/imageUrl';
 import './Admin.css';
 
 const AMENITY_OPTIONS = [
@@ -47,6 +48,9 @@ export default function ListingForm() {
   const [fetchLoading, setFetchLoading] = useState(isEdit);
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [urlInput, setUrlInput] = useState('');
+  const [urlError, setUrlError] = useState('');
+  const [dragOver, setDragOver] = useState(false);
 
   /* Pre-fill form when editing */
   useEffect(() => {
@@ -98,9 +102,44 @@ export default function ListingForm() {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    setImageFiles(files);
-    const previews = files.map((f) => URL.createObjectURL(f));
-    setImagePreviews(previews);
+    addImageFiles(files);
+  };
+
+  const addImageFiles = (files) => {
+    const valid = files.filter(f => f.size <= 5 * 1024 * 1024);
+    setImageFiles((prev) => [...prev, ...valid]);
+    const previews = valid.map((f) => URL.createObjectURL(f));
+    setImagePreviews((prev) => [...prev, ...previews]);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer.files).filter(f =>
+      ['image/jpeg', 'image/png', 'image/webp'].includes(f.type)
+    );
+    addImageFiles(files);
+  };
+
+  const handleRemoveImage = (index) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddUrl = () => {
+    const url = urlInput.trim();
+    if (!url) return;
+    try {
+      new URL(url);
+    } catch {
+      setUrlError('Please enter a valid URL');
+      return;
+    }
+    setUrlError('');
+    setImagePreviews((prev) => [...prev, url]);
+    // Mark as a URL-based image (no file) by pushing null placeholder
+    setImageFiles((prev) => [...prev, null]);
+    setUrlInput('');
   };
 
   const handleSubmit = async (e) => {
@@ -120,6 +159,12 @@ export default function ListingForm() {
         }
       });
       imageFiles.forEach((f) => formData.append('images', f));
+      // Also send URL-only images as a separate field
+      imagePreviews.forEach((src, i) => {
+        if (imageFiles[i] === null) {
+          formData.append('imageUrls', src);
+        }
+      });
 
       if (isEdit) {
         await api.put(`/accommodations/${id}`, formData, {
@@ -277,11 +322,29 @@ export default function ListingForm() {
 
           {/* Images */}
           <section className="admin-form__section">
-            <h2 className="admin-form__section-title">Images</h2>
-            <label htmlFor="images" className="admin-form__upload-label">
+            <h2 className="admin-form__section-title">
+              Images
+              <span className="admin-form__section-count">{imagePreviews.length} / 10</span>
+            </h2>
+
+            {/* Drag & drop / click upload zone */}
+            <div
+              className={`admin-form__upload-zone ${dragOver ? 'admin-form__upload-zone--over' : ''}`}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              onClick={() => document.getElementById('images').click()}
+              role="button"
+              tabIndex={0}
+              aria-label="Upload images"
+              onKeyDown={(e) => e.key === 'Enter' && document.getElementById('images').click()}
+            >
               <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4v16m-6-6l6-6 6 6M4 26h24"/></svg>
-              Click to upload images (JPEG, PNG, WebP · max 5MB each)
-            </label>
+              <p className="admin-form__upload-title">
+                {dragOver ? 'Drop images here' : 'Drag & drop or click to upload'}
+              </p>
+              <p className="admin-form__upload-sub">JPEG, PNG, WebP · max 5MB each · up to 10 images</p>
+            </div>
             <input
               id="images"
               type="file"
@@ -290,10 +353,39 @@ export default function ListingForm() {
               className="visually-hidden"
               onChange={handleImageChange}
             />
+
+            {/* URL input */}
+            <div className="admin-form__url-row">
+              <input
+                type="url"
+                className="form-input"
+                placeholder="Or paste an image URL (https://...)"
+                value={urlInput}
+                onChange={(e) => { setUrlInput(e.target.value); setUrlError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddUrl())}
+              />
+              <button type="button" className="btn btn--ghost admin-form__url-btn" onClick={handleAddUrl}>
+                Add URL
+              </button>
+            </div>
+            {urlError && <span className="form-error">{urlError}</span>}
+
+            {/* Previews */}
             {imagePreviews.length > 0 && (
-              <div className="admin-form__previews">
+              <div className="admin-form__preview-grid">
                 {imagePreviews.map((src, i) => (
-                  <img key={i} src={src} alt={`Preview ${i + 1}`} className="admin-form__preview-img" />
+                  <div key={i} className="admin-form__preview-item">
+                    <img src={getImageUrl(src)} alt={`Preview ${i + 1}`} className="admin-form__preview-img" />
+                    {i === 0 && <span className="admin-form__preview-badge">Cover</span>}
+                    <button
+                      type="button"
+                      className="admin-form__preview-remove"
+                      onClick={() => handleRemoveImage(i)}
+                      aria-label={`Remove image ${i + 1}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 ))}
               </div>
             )}

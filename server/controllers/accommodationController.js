@@ -15,9 +15,18 @@ const createAccommodation = async (req, res) => {
     } = req.body;
 
     // Handle uploaded images (multer stores them in req.files)
-    const images = req.files
+    const uploadedImages = req.files
       ? req.files.map((f) => `/uploads/${f.filename}`)
       : [];
+
+    // Handle URL-only images passed as imageUrls field
+    const urlImages = req.body.imageUrls
+      ? typeof req.body.imageUrls === 'string'
+        ? [req.body.imageUrls]
+        : req.body.imageUrls
+      : [];
+
+    const images = [...uploadedImages, ...urlImages];
 
     const accommodation = await Accommodation.create({
       title,
@@ -136,11 +145,21 @@ const updateAccommodation = async (req, res) => {
     }
 
     // Handle new images if uploaded
-    const newImages = req.files
+    const newUploadedImages = req.files
       ? req.files.map((f) => `/uploads/${f.filename}`)
       : [];
 
+    // Handle URL-only images
+    const newUrlImages = req.body.imageUrls
+      ? typeof req.body.imageUrls === 'string'
+        ? [req.body.imageUrls]
+        : req.body.imageUrls
+      : [];
+
+    const newImages = [...newUploadedImages, ...newUrlImages];
+
     const updatedData = { ...req.body };
+    delete updatedData.imageUrls; // remove raw field, use merged images instead
 
     // Merge images: keep existing ones unless replaced
     if (newImages.length > 0) {

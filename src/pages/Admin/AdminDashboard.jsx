@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
+import { getImageUrl } from '../../utils/imageUrl';
 import './Admin.css';
 
 export default function AdminDashboard() {
@@ -125,7 +126,7 @@ export default function AdminDashboard() {
                     <td>
                       <div className="admin-table__listing">
                         <img
-                          src={listing.images?.[0] || 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=100'}
+                          src={getImageUrl(listing.images?.[0], 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=100')}
                           alt={listing.title}
                           className="admin-table__thumb"
                           loading="lazy"
